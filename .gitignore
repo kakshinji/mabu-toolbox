@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+.pnpm-store/
+.npm-cache/
+
+# build output
+dist/
+.esbuild-tmp/
+tmp-build/
+
+# test artifacts（脚本保留，产物不入库）
+tests/output/
+tests/screenshots/
+tests/mobile-shots/
+tests/edge-shots/
+tests/fixtures/
+tests/*.log
+tests/*.json
+!tests/package.json
+
+# 本地截图与临时文件
+screenshots/
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# 编辑器
+.vscode/
+.idea/

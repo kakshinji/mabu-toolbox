@@ -1,0 +1,325 @@
+﻿@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   设计基线：暖纸底 + 墨黑正文 + 玉青强调
+   规则：8px 间距网格；字号层级 ≥2:1；强调色只用于交互与状态
+   ============================================================ */
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    color-scheme: light;
+  }
+
+  body {
+    @apply bg-paper-100 text-ink-800 antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    text-rendering: optimizeLegibility;
+  }
+
+  /* 统一焦点环，键盘可达性 */
+  :focus-visible {
+    @apply outline-none ring-2 ring-jade-400/60 ring-offset-2 ring-offset-paper-50;
+  }
+
+  ::selection {
+    @apply bg-jade-200/70 text-ink-900;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply text-ink-900;
+    letter-spacing: -0.015em;
+  }
+
+  /* 数字与代码用等宽，保持表格对齐 */
+  .tabular,
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 移动端点击高亮去掉，交给自定义 hover */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer components {
+  /* ---------- 卡片 ---------- */
+  .card {
+    @apply rounded-2xl border border-ink-900/[0.07] bg-white shadow-card;
+  }
+  .card-hover {
+    @apply transition-all duration-300 ease-smooth hover:-translate-y-0.5 hover:border-ink-900/[0.12] hover:shadow-lift;
+  }
+  .card-flat {
+    @apply rounded-xl border border-ink-900/[0.06] bg-paper-50;
+  }
+
+  /* ---------- 按钮 ---------- */
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm
+      font-medium leading-none transition-all duration-200 ease-smooth
+      disabled:pointer-events-none disabled:opacity-45;
+  }
+  .btn:active:not(:disabled) {
+    transform: translateY(0.5px) scale(0.995);
+  }
+  .btn-primary {
+    @apply btn bg-ink-900 text-paper-50 shadow-card hover:bg-ink-800 hover:shadow-lift;
+  }
+  .btn-accent {
+    @apply btn bg-jade-600 text-white shadow-card hover:bg-jade-700 hover:shadow-lift;
+  }
+  .btn-secondary {
+    @apply btn border border-ink-900/10 bg-white text-ink-700 shadow-card hover:border-ink-900/20 hover:bg-paper-50;
+  }
+  .btn-ghost {
+    @apply btn text-ink-600 hover:bg-ink-900/[0.05] hover:text-ink-900;
+  }
+
+  /* ---------- 表单 ---------- */
+  .input {
+    @apply w-full rounded-xl border border-ink-900/10 bg-white px-3.5 py-2.5 text-sm text-ink-800
+      shadow-card outline-none transition-colors duration-200
+      placeholder:text-ink-400
+      focus:border-jade-500 focus:ring-2 focus:ring-jade-100;
+  }
+  .label {
+    @apply mb-2 block text-[13px] font-medium text-ink-700;
+  }
+  .hint {
+    @apply mt-1.5 text-xs leading-relaxed text-ink-400;
+  }
+
+  /* ---------- 标签 ---------- */
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-ink-900/[0.06] bg-paper-200/70
+      px-2.5 py-1 text-xs font-medium text-ink-600;
+  }
+  .chip-accent {
+    @apply inline-flex items-center gap-1.5 rounded-full bg-jade-50 px-2.5 py-1 text-xs font-medium text-jade-700
+      ring-1 ring-inset ring-jade-600/15;
+  }
+  .kbd {
+    @apply inline-flex h-5 min-w-[20px] items-center justify-center rounded border border-ink-900/10
+      bg-paper-50 px-1.5 font-mono text-[11px] font-medium text-ink-500;
+  }
+  .mono {
+    @apply font-mono text-[13px];
+  }
+
+  /* ---------- 分区标题 ---------- */
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-400;
+  }
+  .section-title {
+    @apply text-[26px] font-semibold tracking-tight text-ink-900 sm:text-[30px];
+  }
+}
+
+/* ---------- 拖拽区 ---------- */
+.dropzone {
+  @apply relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed
+    border-ink-900/15 bg-paper-50/60 px-6 py-12 text-center transition-all duration-300 ease-smooth
+    hover:border-jade-500/60 hover:bg-jade-50/40;
+}
+.dropzone-active {
+  @apply border-jade-500 bg-jade-50/70 ring-4 ring-jade-100;
+}
+
+/* ---------- 背景纹理 ---------- */
+
+/* 暖色光晕（Hero） */
+.bg-mesh {
+  background-color: #f9f7f3;
+  background-image:
+    radial-gradient(at 18% 8%, rgba(31, 156, 130, 0.1) 0px, transparent 45%),
+    radial-gradient(at 82% 4%, rgba(207, 85, 61, 0.07) 0px, transparent 40%),
+    radial-gradient(at 50% 0%, rgba(255, 255, 255, 0.9) 0px, transparent 55%);
+}
+
+/* 细网格（Hero 下层），四周柔和淡出 */
+.bg-grid {
+  background-image:
+    linear-gradient(to right, rgba(20, 20, 19, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(20, 20, 19, 0.04) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 85% 75% at 50% 40%, #000 30%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 85% 75% at 50% 40%, #000 30%, transparent 100%);
+}
+
+/* 顶部细线渐变（分隔用） */
+.rule-fade {
+  background: linear-gradient(to right, transparent, rgba(20, 20, 19, 0.12), transparent);
+}
+
+/* ---------- 移动端适配 ----------
+   1. 触控目标 ≥44px（Apple HIG）
+   2. 表单控件字号 ≥16px，避免 iOS 聚焦时自动放大页面
+   3. 页脚/面包屑等文字链接增加可点击高度
+*/
+@media (max-width: 640px) {
+  /* 所有按钮与可点击控件至少 44px 高（Apple HIG） */
+  button,
+  [role='button'],
+  select {
+    min-height: 44px;
+  }
+  .btn {
+    min-height: 44px;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+  .input {
+    font-size: 16px;
+    min-height: 44px;
+  }
+  textarea.input {
+    min-height: 96px;
+  }
+  select.input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+  /* 标签类按钮（筛选、动作 chip） */
+  .chip {
+    min-height: 44px;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  /* 文字链接增加可点击面积 */
+  footer a,
+  nav a {
+    display: inline-block;
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
+  }
+  /* 颜色色阶等窄按钮也保证最小宽度 */
+  .swatch-button {
+    min-width: 44px;
+  }
+  /* 滑块：轨道保持细，但整块热区 44px */
+  input[type='range'] {
+    height: 44px;
+    background: transparent;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  input[type='range']::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(20, 20, 19, 0.12);
+  }
+  input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 26px;
+    height: 26px;
+    margin-top: -10px;
+    border-radius: 999px;
+    background: #147d69;
+    border: 3px solid #fff;
+    box-shadow: 0 1px 4px rgba(20, 20, 19, 0.25);
+  }
+  input[type='range']::-moz-range-track {
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(20, 20, 19, 0.12);
+  }
+  input[type='range']::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: #147d69;
+    border: 3px solid #fff;
+  }
+  /* 代码与等宽文本在窄屏下不撑破布局 */
+  .mono,
+  pre,
+  code {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  /* 表格横向滚动而不是撑破页面 */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* 触屏设备：去掉仅靠 hover 才出现的内容被隐藏的问题 */
+@media (hover: none) {
+  .group-hover\:opacity-100 {
+    opacity: 1;
+  }
+}
+
+/* ---------- 滚动条 ---------- */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-ink-900/15;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  @apply bg-ink-900/25;
+}
+
+/* ---------- 动效分级 ---------- */
+.stagger > * {
+  animation: fade-up 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.stagger > *:nth-child(2) { animation-delay: 0.06s; }
+.stagger > *:nth-child(3) { animation-delay: 0.1s; }
+.stagger > *:nth-child(4) { animation-delay: 0.14s; }
+.stagger > *:nth-child(5) { animation-delay: 0.18s; }
+.stagger > *:nth-child(6) { animation-delay: 0.22s; }
+.stagger > *:nth-child(7) { animation-delay: 0.26s; }
+.stagger > *:nth-child(8) { animation-delay: 0.3s; }
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ---------- 长文本排版（Markdown 预览等） ---------- */
+.prose-tool {
+  @apply text-[15px] leading-7 text-ink-700;
+}
+.prose-tool h1 { @apply mb-4 mt-6 text-2xl font-semibold text-ink-900; }
+.prose-tool h2 { @apply mb-3 mt-6 text-xl font-semibold text-ink-900; }
+.prose-tool h3 { @apply mb-2 mt-5 text-base font-semibold text-ink-900; }
+.prose-tool p { @apply my-3; }
+.prose-tool a { @apply text-jade-700 underline decoration-jade-300 underline-offset-2 hover:decoration-jade-500; }
+.prose-tool ul { @apply my-3 list-disc pl-6; }
+.prose-tool ol { @apply my-3 list-decimal pl-6; }
+.prose-tool li { @apply my-1; }
+.prose-tool code { @apply rounded bg-paper-200 px-1.5 py-0.5 font-mono text-[13px] text-ink-800; }
+.prose-tool pre { @apply my-4 overflow-auto rounded-xl bg-ink-900 p-4 text-paper-100; }
+.prose-tool pre code { @apply bg-transparent p-0 text-paper-100; }
+.prose-tool blockquote { @apply my-4 border-l-2 border-ink-900/15 pl-4 text-ink-500; }
+.prose-tool table { @apply my-4 w-full border-collapse text-sm; }
+.prose-tool th { @apply border border-ink-900/10 bg-paper-100 px-3 py-2 text-left font-medium; }
+.prose-tool td { @apply border border-ink-900/10 px-3 py-2; }
+.prose-tool hr { @apply my-6 border-ink-900/10; }
+.prose-tool img { @apply my-4 rounded-xl; }

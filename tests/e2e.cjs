@@ -292,8 +292,7 @@ async function runTool(name, actions) {
 
   try {
     // 用 query 参数强制整页加载（hash 变更不会重新执行注入脚本）
-    await page.goto(`${BASE}/?load=${Date.now()}`, { waitUntil: 'domcontentloaded', timeout: 45000 });
-    await page.goto(`${BASE}/?load=${Date.now()}#/tools/${name}`, { waitUntil: 'networkidle2', timeout: 45000 });
+    await page.goto(`${BASE}/tools/${name}/`, { waitUntil: 'networkidle2', timeout: 45000 });
     await wait(800);
     const hookOk = await page.evaluate(() => Array.isArray(window.__objs) && typeof window.__takeDownloads === 'function');
     if (!hookOk) throw new Error('Blob 采集 hook 未注入');

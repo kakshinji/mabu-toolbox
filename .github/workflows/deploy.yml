@@ -10,10 +10,14 @@ permissions:
   pages: write
   id-token: write
 
-# 同一时间只允许一个部署
 concurrency:
   group: pages
   cancel-in-progress: true
+
+env:
+  # 站点部署在子路径下；换成自定义域名时改成 /
+  SITE_BASE: /mabu-toolbox/
+  SITE_URL: https://kakshinji.github.io/mabu-toolbox
 
 jobs:
   build:
@@ -32,8 +36,19 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit -p tsconfig.json
 
-      - name: Build
-        run: npx vite build
+      - name: Build + prerender (SEO)
+        run: npx vite build && node scripts/prerender.mjs
+
+      - name: Verify prerender output
+        run: |
+          set -e
+          test -f dist/sitemap.xml
+          test -f dist/llms.txt
+          test -f dist/robots.txt
+          test -f dist/tools/pdf-merge/index.html
+          test -f dist/category/pdf/index.html
+          echo "prerendered pages: $(find dist -name index.html | wc -l)"
+          echo "sitemap urls: $(grep -c '<loc>' dist/sitemap.xml)"
 
       - uses: actions/configure-pages@v5
 
@@ -50,3 +65,27 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  indexnow:
+    # 部署完成后主动通知搜索引擎（Bing / Yandex 等）有新内容
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Submit sitemap URLs via IndexNow
+        continue-on-error: true
+        run: |
+          sleep 15
+          node -e "
+            const fs=require('fs');
+            const key=process.env.INDEXNOW_KEY||'mabutoolbox2026indexnowkey';
+            const site=process.env.SITE_URL;
+            const res=await fetch(site+'/sitemap.xml');
+            const xml=await res.text();
+            const list=[...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m=>m[1]);
+            const r=await fetch('https://api.indexnow.org/indexnow',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({host:new URL(site).host,key,keyLocation:site+'/'+key+'.txt',urlList:list})});
+            console.log('IndexNow',r.status,'urls:',list.length);
+          "

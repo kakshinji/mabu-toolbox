@@ -1,0 +1,15 @@
+{
+  "name": "抹布工具箱",
+  "short_name": "抹布工具箱",
+  "description": "41 个免费在线小工具，文件不上传，全部在浏览器本地处理",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f9f7f3",
+  "theme_color": "#141413",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "./icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

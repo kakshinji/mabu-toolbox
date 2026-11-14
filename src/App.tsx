@@ -1,4 +1,4 @@
-﻿import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import type { ComponentType } from 'react';
 import { useRoute, Link, navigate } from './lib/router';
 import { useTitle, useQueryState } from './lib/hooks';
@@ -8,6 +8,9 @@ import { Icon, Logo } from './components/Icon';
 import type { IconName } from './components/Icon';
 import { ToastProvider } from './components/Toast';
 import { CommandPalette } from './components/CommandPalette';
+import { siteSeo, toolSeo, categorySeo } from './content/seo';
+import { useSeo, SITE_URL } from './lib/seo';
+import { BASE } from './lib/router';
 
 /* ---------- 工具页面按需加载 ---------- */
 const toolComponents: Record<string, ComponentType> = {
@@ -144,10 +147,10 @@ function Header() {
             <Link to="/tools" className="btn-ghost !px-3 !py-2 !text-[13px]">
               全部工具
             </Link>
-            <Link to="/tools?c=pdf" className="btn-ghost !px-3 !py-2 !text-[13px]">
+            <Link to="/category/pdf/" className="btn-ghost !px-3 !py-2 !text-[13px]">
               PDF
             </Link>
-            <Link to="/tools?c=image" className="btn-ghost !px-3 !py-2 !text-[13px]">
+            <Link to="/category/image/" className="btn-ghost !px-3 !py-2 !text-[13px]">
               图片
             </Link>
             <Link to="/about" className="btn-ghost !px-3 !py-2 !text-[13px]">
@@ -190,7 +193,7 @@ function Header() {
               {categories.map((c) => (
                 <Link
                   key={c.id}
-                  to={`/tools?c=${c.id}`}
+                  to={`/category/${c.id}/`}
                   className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-ink-700 hover:bg-paper-200"
                   onClick={() => setOpen(false)}
                 >
@@ -237,7 +240,7 @@ function Footer() {
                 <ul className="space-y-2.5 text-[13px] text-ink-500">
                   {categories.slice(0, 4).map((c) => (
                     <li key={c.id}>
-                      <Link to={`/tools?c=${c.id}`} className="transition-colors hover:text-ink-900">
+                      <Link to={`/category/${c.id}/`} className="transition-colors hover:text-ink-900">
                         {c.name}
                       </Link>
                     </li>
@@ -343,6 +346,48 @@ function Home() {
     return order.map((s) => toolBySlug(s)).filter(Boolean) as ToolMeta[];
   }, []);
 
+  useSeo({
+    title: `${siteSeo.name} · ${tools.length} 个免费在线小工具，文件不上传`,
+    description: siteSeo.description,
+    path: '/',
+    keywords: siteSeo.keywords,
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: siteSeo.name,
+        alternateName: 'Mabu Toolbox',
+        url: `${SITE_URL}${BASE}/`,
+        description: siteSeo.description,
+        inLanguage: 'zh-CN',
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: { '@type': 'EntryPoint', urlTemplate: `${SITE_URL}${BASE}/tools/?q={search_term_string}` },
+          'query-input': 'required name=search_term_string',
+        },
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        name: '全部在线工具',
+        numberOfItems: tools.length,
+        itemListElement: tools.map((t, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          name: t.name,
+          url: `${SITE_URL}${BASE}/tools/${t.slug}/`,
+        })),
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        name: siteSeo.name,
+        url: `${SITE_URL}${BASE}/`,
+        logo: `${SITE_URL}${BASE}/icons/icon-512.png`,
+      },
+    ],
+  });
+
   const stats = [
     { value: String(tools.length), label: '个工具' },
     { value: '0', label: '个文件上传' },
@@ -445,7 +490,7 @@ function Home() {
             return (
               <Link
                 key={c.id}
-                to={`/tools?c=${c.id}`}
+                to={`/category/${c.id}/`}
                 style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}
                 className="group card card-hover animate-fade-up p-5"
               >
@@ -470,6 +515,43 @@ function Home() {
               </Link>
             );
           })}
+        </div>
+      </section>
+
+      {/* 全部工具（文本索引，利于爬虫与站内跳转） */}
+      <section className="mx-auto max-w-6xl px-4 pt-16 sm:px-6 sm:pt-20">
+        <div className="mb-6">
+          <div className="eyebrow">Index</div>
+          <h2 className="section-title mt-1.5">全部 {tools.length} 个工具</h2>
+          <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink-500">
+            按分类列出全部工具，点击名称直接进入。每个工具都提供独立页面，说明用途、使用方式与常见问题。
+          </p>
+        </div>
+        <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
+          {categories.map((c) => (
+            <div key={c.id}>
+              <Link
+                to={`/category/${c.id}/`}
+                className="flex items-center gap-1.5 text-[13px] font-semibold text-ink-900 hover:text-jade-700"
+              >
+                <Icon name={categoryIcon[c.id]} size={14} className="text-ink-400" />
+                {c.name}
+              </Link>
+              <ul className="mt-2 space-y-1.5">
+                {toolsByCategory(c.id).map((t) => (
+                  <li key={t.id}>
+                    <Link
+                      to={`/tools/${t.slug}/`}
+                      className="text-[12.5px] text-ink-500 transition-colors hover:text-ink-900"
+                      title={t.desc}
+                    >
+                      {t.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -539,13 +621,13 @@ function Home() {
 }
 
 /* ---------- 工具列表页 ---------- */
-function ToolsPage({ query, catFilter }: { query: string; catFilter?: string }) {
+function ToolsPage({ query, categoryId }: { query: string; categoryId?: string }) {
   const list = useMemo(() => {
     let arr = query ? searchTools(query) : tools;
-    if (catFilter) arr = arr.filter((t) => t.category === catFilter);
+    if (categoryId) arr = arr.filter((t) => t.category === categoryId);
     return arr;
-  }, [query, catFilter]);
-  const activeCat = categories.find((c) => c.id === catFilter);
+  }, [query, categoryId]);
+  const activeCat = categories.find((c) => c.id === categoryId);
   const [filter, setFilter] = useState('');
 
   const shown = useMemo(() => {
@@ -553,16 +635,25 @@ function ToolsPage({ query, catFilter }: { query: string; catFilter?: string }) 
     return list.filter((t) => t.name.includes(filter) || t.desc.includes(filter));
   }, [list, filter]);
 
+  useSeo({
+    title: activeCat ? `${activeCat.name} · ${list.length} 个工具` : `全部工具 · ${tools.length} 个免费在线工具`,
+    description: activeCat
+      ? `${activeCat.name}：${activeCat.desc}。共 ${list.length} 个工具，全部在浏览器本地处理，不上传文件，免费无需注册。`
+      : `抹布工具箱全部 ${tools.length} 个免费在线工具：PDF、图片、OCR、音视频、文本、编码、开发辅助与生活计算。全部在浏览器本地处理，不上传文件。`,
+    path: activeCat ? `/category/${activeCat.id}` : '/tools',
+    keywords: activeCat ? [activeCat.name, `${activeCat.name}在线`, '免费在线工具', '本地处理'] : siteSeo.keywords,
+  });
+
   return (
     <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="eyebrow">All tools</div>
+          <div className="eyebrow">{activeCat ? 'Category' : 'All tools'}</div>
           <h1 className="mt-1.5 text-[30px] font-semibold tracking-tight text-ink-900 sm:text-[36px]">
-            {activeCat ? activeCat.name : '全部工具'}
+            {activeCat ? categorySeo[activeCat.id]?.title ?? activeCat.name : '全部工具'}
           </h1>
-          <p className="mt-2 text-[13px] text-ink-500">
-            {activeCat ? activeCat.desc : '按分类浏览，或者直接搜索。全部在本地运行，不上传文件。'}
+          <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink-500">
+            {activeCat ? categorySeo[activeCat.id]?.intro ?? activeCat.desc : '按分类浏览，或者直接搜索。全部在本地运行，不上传文件。'}
             <span className="ml-2 tabular-nums text-ink-400">共 {list.length} 个</span>
           </p>
         </div>
@@ -583,7 +674,7 @@ function ToolsPage({ query, catFilter }: { query: string; catFilter?: string }) 
           type="button"
           onClick={() => navigate('/tools')}
           className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all duration-200 ${
-            !catFilter
+            !categoryId
               ? 'bg-ink-900 text-paper-50 shadow-card'
               : 'bg-white text-ink-500 ring-1 ring-inset ring-ink-900/[0.08] hover:text-ink-900'
           }`}
@@ -591,12 +682,12 @@ function ToolsPage({ query, catFilter }: { query: string; catFilter?: string }) 
           全部
         </button>
         {categories.map((c) => {
-          const active = catFilter === c.id;
+          const active = categoryId === c.id;
           return (
             <button
               key={c.id}
               type="button"
-              onClick={() => navigate(`/tools?c=${c.id}`)}
+              onClick={() => navigate(`/category/${c.id}/`)}
               className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all duration-200 ${
                 active
                   ? 'bg-ink-900 text-paper-50 shadow-card'
@@ -627,12 +718,70 @@ function ToolsPage({ query, catFilter }: { query: string; catFilter?: string }) 
           </button>
         </div>
       )}
+
+      {activeCat && categorySeo[activeCat.id] && (
+        <section className="mt-14 border-t border-ink-900/[0.07] pt-8">
+          <h2 className="text-[17px] font-semibold text-ink-900">适合谁用</h2>
+          <ul className="mt-3 space-y-2 text-[14px] leading-7 text-ink-600">
+            {categorySeo[activeCat.id].audience.map((a) => (
+              <li key={a} className="flex gap-2">
+                <Icon name="check" size={15} className="mt-1.5 shrink-0 text-jade-600" />
+                <span>{a}</span>
+              </li>
+            ))}
+          </ul>
+
+          <h2 className="mt-8 text-[17px] font-semibold text-ink-900">常见问题</h2>
+          <dl className="mt-3 space-y-4">
+            {categorySeo[activeCat.id].faq.map((f) => (
+              <div key={f.q}>
+                <dt className="text-[14px] font-medium text-ink-900">{f.q}</dt>
+                <dd className="mt-1 text-[13px] leading-7 text-ink-600">{f.a}</dd>
+              </div>
+            ))}
+          </dl>
+
+          <nav className="mt-10" aria-label="其它分类">
+            <h2 className="text-[17px] font-semibold text-ink-900">其它分类</h2>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {categories
+                .filter((c) => c.id !== activeCat.id)
+                .map((c) => (
+                  <Link
+                    key={c.id}
+                    to={`/category/${c.id}/`}
+                    className="chip hover:!bg-paper-300"
+                  >
+                    <Icon name={categoryIcon[c.id]} size={13} className="text-ink-400" />
+                    {c.name}
+                  </Link>
+                ))}
+            </div>
+          </nav>
+        </section>
+      )}
     </main>
   );
 }
 
 /* ---------- 关于页 ---------- */
 function AboutPage() {
+  useSeo({
+    title: '关于本站 · 隐私说明与使用限制',
+    description:
+      '抹布工具箱是一个纯前端在线工具箱：41 个工具全部在浏览器本地运行，文件不上传、无后端、无数据库、无需注册。这里说明隐私策略、大小限制与常见问题。',
+    path: '/about',
+    keywords: ['抹布工具箱', '隐私说明', '在线工具箱', '本地处理', '免费工具'],
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'AboutPage',
+      name: '关于抹布工具箱',
+      url: `${SITE_URL}${BASE}/about/`,
+      inLanguage: 'zh-CN',
+      isPartOf: { '@type': 'WebSite', name: siteSeo.name, url: `${SITE_URL}${BASE}/` },
+    },
+  });
+
   return (
     <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
       <div className="eyebrow">About</div>
@@ -711,15 +860,65 @@ function ToolPage({ meta }: { meta: ToolMeta }) {
   const Comp = toolComponents[meta.id];
   const cat = categories.find((c) => c.id === meta.category);
   const related = tools.filter((t) => t.category === meta.category && t.id !== meta.id).slice(0, 3);
+  const seo = toolSeo[meta.id];
+
+  const faq = seo?.faq ?? [];
+  const path = `/tools/${meta.slug}`;
+
+  useSeo({
+    title: `${meta.name} · 免费在线${seo ? '工具' : ''}`,
+    description: seo?.intro ?? meta.desc,
+    path,
+    keywords: seo?.keywords ?? [meta.name, ...meta.keywords],
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'SoftwareApplication',
+        name: `${meta.name} - 抹布工具箱`,
+        description: seo?.intro ?? meta.desc,
+        url: `${SITE_URL}${BASE}${path}/`,
+        applicationCategory: 'UtilitiesApplication',
+        operatingSystem: 'Any (Web Browser)',
+        browserRequirements: '需要支持 WebAssembly 的现代浏览器',
+        inLanguage: 'zh-CN',
+        isAccessibleForFree: true,
+        offers: { '@type': 'Offer', price: '0', priceCurrency: 'CNY' },
+        featureList: seo?.features ?? [],
+        isPartOf: { '@type': 'WebSite', name: siteSeo.name, url: `${SITE_URL}${BASE}/` },
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: '首页', item: `${SITE_URL}${BASE}/` },
+          { '@type': 'ListItem', position: 2, name: cat?.name, item: `${SITE_URL}${BASE}/category/${meta.category}/` },
+          { '@type': 'ListItem', position: 3, name: meta.name, item: `${SITE_URL}${BASE}${path}/` },
+        ],
+      },
+      ...(faq.length
+        ? [
+            {
+              '@context': 'https://schema.org',
+              '@type': 'FAQPage',
+              mainEntity: faq.map((f) => ({
+                '@type': 'Question',
+                name: f.q,
+                acceptedAnswer: { '@type': 'Answer', text: f.a },
+              })),
+            },
+          ]
+        : []),
+    ],
+  });
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10">
-      <nav className="mb-6 flex items-center gap-1.5 text-[12px] text-ink-400">
+      <nav className="mb-6 flex items-center gap-1.5 text-[12px] text-ink-400" aria-label="面包屑">
         <Link to="/" className="transition-colors hover:text-ink-800">
           首页
         </Link>
         <Icon name="chevron-right" size={12} className="text-ink-300" />
-        <Link to={`/tools?c=${meta.category}`} className="transition-colors hover:text-ink-800">
+        <Link to={`/category/${meta.category}/`} className="transition-colors hover:text-ink-800">
           {cat?.name}
         </Link>
         <Icon name="chevron-right" size={12} className="text-ink-300" />
@@ -730,7 +929,9 @@ function ToolPage({ meta }: { meta: ToolMeta }) {
         <ToolGlyph tool={meta} size="lg" />
         <div className="min-w-0">
           <h1 className="text-[26px] font-semibold tracking-tight text-ink-900 sm:text-[30px]">{meta.name}</h1>
-          <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-ink-500">{meta.desc}</p>
+          <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-ink-500">
+            {seo?.intro ?? meta.desc}
+          </p>
           <div className="mt-3 flex flex-wrap items-center gap-1.5">
             <span className="chip-accent">
               <Icon name="shield" size={12} />
@@ -761,11 +962,47 @@ function ToolPage({ meta }: { meta: ToolMeta }) {
         </Suspense>
       </div>
 
+      {seo && (
+        <section className="mt-12 border-t border-ink-900/[0.07] pt-8">
+          <h2 className="text-[17px] font-semibold text-ink-900">关于「{meta.name}」</h2>
+          <ul className="mt-3 space-y-2 text-[14px] leading-7 text-ink-600">
+            {seo.features.map((f) => (
+              <li key={f} className="flex gap-2">
+                <Icon name="check" size={15} className="mt-1.5 shrink-0 text-jade-600" />
+                <span>{f}</span>
+              </li>
+            ))}
+          </ul>
+
+          {faq.length > 0 && (
+            <>
+              <h2 className="mt-8 text-[17px] font-semibold text-ink-900">常见问题</h2>
+              <dl className="mt-3 space-y-4">
+                {faq.map((f) => (
+                  <div key={f.q}>
+                    <dt className="text-[14px] font-medium text-ink-900">{f.q}</dt>
+                    <dd className="mt-1 text-[13px] leading-7 text-ink-600">{f.a}</dd>
+                  </div>
+                ))}
+              </dl>
+            </>
+          )}
+
+          <p className="mt-8 text-[13px] leading-7 text-ink-500">
+            「{meta.name}」属于
+            <Link to={`/category/${meta.category}/`} className="mx-1 text-jade-700 underline decoration-jade-300 underline-offset-2 hover:decoration-jade-500">
+              {cat?.name}
+            </Link>
+            分类，全程在浏览器本地处理，不上传文件、不需要注册，也没有使用次数限制。
+          </p>
+        </section>
+      )}
+
       {related.length > 0 && (
         <section className="mt-12">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-[13px] font-medium text-ink-500">同类工具</h2>
-            <Link to={`/tools?c=${meta.category}`} className="text-[12px] text-ink-400 transition-colors hover:text-ink-800">
+            <Link to={`/category/${meta.category}/`} className="text-[12px] text-ink-400 transition-colors hover:text-ink-800">
               更多{cat?.name}
             </Link>
           </div>
@@ -788,11 +1025,6 @@ export default function App() {
   const meta = route.slug ? toolBySlug(route.slug) : undefined;
   useTitle(meta ? `${meta.name} · 抹布工具箱` : `抹布工具箱 · ${tools.length} 个免费在线小工具`);
 
-  const catFilter = useMemo(() => {
-    const m = route.path.match(/[?&]c=([a-z]+)/);
-    return m?.[1];
-  }, [route.path]);
-
   const content = (() => {
     if (route.path === '/about') return <AboutPage />;
     if (route.path.startsWith('/tools/') && route.slug) {
@@ -811,7 +1043,8 @@ export default function App() {
         </main>
       );
     }
-    if (route.path.startsWith('/tools')) return <ToolsPage query={query} catFilter={catFilter} />;
+    if (route.category) return <ToolsPage query={query} categoryId={route.category} />;
+    if (route.path.startsWith('/tools')) return <ToolsPage query={query} />;
     return <Home />;
   })();
 

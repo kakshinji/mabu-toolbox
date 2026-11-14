@@ -66,22 +66,22 @@ const slugs = [
   }
 
   console.log('== 首页 ==');
-  await visit(`${BASE}/#/`, 'home');
+  await visit(`${BASE}/`, 'home');
   await page.screenshot({ path: path.join(OUT, 'home.png'), fullPage: false });
 
   console.log('== 工具列表 ==');
-  await visit(`${BASE}/#/tools`, 'tools');
+  await visit(`${BASE}/tools`, 'tools');
   await page.screenshot({ path: path.join(OUT, 'tools.png') });
 
   console.log('== 42 个工具页 ==');
   for (const slug of slugs) {
-    const r = await visit(`${BASE}/#/tools/${slug}`, slug);
+    const r = await visit(`${BASE}/tools/${slug}`, slug);
     if (r.bodyLen < 200) console.log(`  ⚠ ${slug} 内容过少 (${r.bodyLen})`);
   }
 
   // 功能断言：JSON 格式化
   console.log('== 功能测试：JSON 格式化 ==');
-  await page.goto(`${BASE}/#/tools/json-format`, { waitUntil: 'networkidle2' });
+  await page.goto(`${BASE}/tools/json-format`, { waitUntil: 'networkidle2' });
   await page.evaluate(() => {
     const btns = [...document.querySelectorAll('button')];
     const b = btns.find((x) => x.textContent.includes('格式化'));
@@ -98,7 +98,7 @@ const slugs = [
 
   // 功能断言：时间戳
   console.log('== 功能测试：时间戳 ==');
-  await page.goto(`${BASE}/#/tools/timestamp`, { waitUntil: 'networkidle2' });
+  await page.goto(`${BASE}/tools/timestamp`, { waitUntil: 'networkidle2' });
   await new Promise((r) => setTimeout(r, 1200));
   const tsText = await page.evaluate(() => document.body.innerText);
   const tsOk = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(tsText);
@@ -106,7 +106,7 @@ const slugs = [
 
   // 功能断言：二维码 canvas 渲染
   console.log('== 功能测试：二维码 ==');
-  await page.goto(`${BASE}/#/tools/qrcode`, { waitUntil: 'networkidle2' });
+  await page.goto(`${BASE}/tools/qrcode`, { waitUntil: 'networkidle2' });
   await new Promise((r) => setTimeout(r, 1000));
   const qrOk = await page.evaluate(() => {
     const c = document.querySelector('canvas');
@@ -122,7 +122,7 @@ const slugs = [
 
   // 功能断言：单位换算
   console.log('== 功能测试：单位换算 ==');
-  await page.goto(`${BASE}/#/tools/unit-convert`, { waitUntil: 'networkidle2' });
+  await page.goto(`${BASE}/tools/unit-convert`, { waitUntil: 'networkidle2' });
   await new Promise((r) => setTimeout(r, 500));
   const unitText = await page.evaluate(() => document.body.innerText);
   const unitOk = unitText.includes('0.01') || unitText.includes('100');
@@ -130,7 +130,7 @@ const slugs = [
 
   // 功能断言：贷款计算
   console.log('== 功能测试：贷款计算 ==');
-  await page.goto(`${BASE}/#/tools/finance`, { waitUntil: 'networkidle2' });
+  await page.goto(`${BASE}/tools/finance`, { waitUntil: 'networkidle2' });
   await new Promise((r) => setTimeout(r, 500));
   const finText = await page.evaluate(() => document.body.innerText);
   const finOk = /¥[\d,]+\.\d{2}/.test(finText);

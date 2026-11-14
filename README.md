@@ -1,10 +1,10 @@
-# 抹布工具箱
+﻿# 抹布工具箱
 
 一个纯前端的免费在线小工具站：**41 个工具，文件不上传，全部在浏览器里处理**。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-147d69.svg)](LICENSE)
 [![Deploy](https://github.com/kakshinji/mabu-toolbox/actions/workflows/deploy.yml/badge.svg)](https://github.com/kakshinji/mabu-toolbox/actions/workflows/deploy.yml)
-[![Tests](https://img.shields.io/badge/tests-41%20functional%20%2B%2033%20edge%20%2B%2046%20mobile-brightgreen.svg)](tests/测试报告.md)
+[![Tests](https://img.shields.io/badge/tests-41%20functional%20%2B%2033%20edge%20%2B%2046%20mobile%20%2B%2028%20seo-brightgreen.svg)](tests/测试报告.md)
 
 **在线使用**：https://kakshinji.github.io/mabu-toolbox/
 
@@ -69,9 +69,11 @@ src/
   tools/registry.ts     # 工具元数据（名称/分类/关键词），新增工具先改这里
   tools/pages/          # 每个工具一个组件
   components/           # Dropzone、FileList、ResultPanel、Segmented 等通用 UI
+  content/seo.ts        # 每个工具的 SEO 文案（介绍 / 功能点 / FAQ / 关键词）
+  lib/                  # 路由（History API）与运行时 SEO
   utils/                # pdf、pdfjs、image、heic、media、ocr、hash、regexWorker 等纯函数
 public/vendor/          # libheif 浏览器版（HEIC 解码），随站点一起发布
-scripts/                # 冒烟测试脚本（需要本机 Chrome）
+scripts/                # 预渲染、图标生成、IndexNow、冒烟测试
 tests/                  # 功能 / 边界 / 移动端测试脚本与测试报告
 docs/                   # 截图与早期选型调研
 ```
@@ -125,6 +127,93 @@ add_header Cross-Origin-Embedder-Policy credentialless;
 - **超大 PDF**（>200MB）可能因浏览器内存不足失败。
 - **AVIF 导出**依赖浏览器编码支持，不支持时会提示改用 WebP。
 
+## SEO 与 AI 爬虫优化
+
+站点是 SPA，但**不是**只靠 JS 渲染：构建时会为每个路由生成独立静态 HTML，爬虫不执行 JS 也能读到完整内容。
+
+### 做了什么
+
+**1. 真实路径 + 预渲染（最关键的一步）**
+
+早期用 `#/tools/xxx` 哈希路由，搜索引擎和 AI 爬虫基本抓不到。现在改为 History 路由，
+并在 `vite build` 后由 `scripts/prerender.mjs` 生成 **52 个静态页面**：
+
+```
+/                         首页（含全部工具索引）
+/tools/                    全部工具
+/category/pdf/ 等 8 个      分类页（含分类介绍、适用人群、FAQ）
+/tools/pdf-merge/ 等 41 个  每个工具一页（含专属介绍、功能点、FAQ）
+/about/                    关于与隐私说明
+```
+
+每个静态页包含：独立 `<title>`、`meta description`、`canonical`、Open Graph / Twitter 卡片、
+JSON-LD 结构化数据，以及**不依赖 JS 的正文**（标题、介绍、功能列表、FAQ、内部链接）。
+
+**2. 结构化数据（JSON-LD）**
+
+| 页面 | Schema |
+|---|---|
+| 首页 | `WebSite`（含 SearchAction）+ `ItemList`（全部工具）+ `Organization` |
+| 工具页 | `SoftwareApplication`（免费、浏览器运行）+ `BreadcrumbList` + `FAQPage` |
+| 分类页 | `CollectionPage` + `ItemList` |
+| 关于页 | `AboutPage` |
+
+**3. 给 AI 爬虫的专用文件**
+
+- `/llms.txt`：站点说明 + 分类 + 全部工具的一句话介绍（LLM 友好索引，约 7KB）
+- `/llms-full.txt`：每个工具的完整介绍、功能点与 FAQ（约 15KB）
+- `/robots.txt`：显式放行 GPTBot、OAI-SearchBot、ChatGPT-User、ClaudeBot、anthropic-ai、
+  PerplexityBot、Google-Extended、Applebot-Extended、CCBot、Bytespider、Baiduspider 等
+- `/sitemap.xml`：52 条 URL，含 lastmod / changefreq / priority
+
+**4. 其它**
+
+- `404.html`（GitHub Pages 兜底）、`site.webmanifest`、SVG/PNG 图标、1200×630 社交分享封面
+- 部署完成后由 CI 自动向 IndexNow（Bing / Yandex）提交全部 URL
+- 首屏 `preconnect` 到 CDN，减少 OCR / 音视频引擎下载延迟
+
+### 自定义域名或部署路径
+
+改三处即可：
+
+```bash
+# 1. .env.production —— 运行时的 canonical / OG 地址
+VITE_SITE_URL=https://your-domain.com
+
+# 2. .github/workflows/deploy.yml —— 构建期 base 与站点地址
+SITE_BASE=/
+SITE_URL=https://your-domain.com
+```
+
+本地构建默认 `base: '/'`；部署在子路径（如 GitHub Pages 项目页）时用 `SITE_BASE=/mabu-toolbox/`。
+
+### 验证
+
+```bash
+node tests/seo.cjs                     # 抓原始 HTML 校验 28 项（不执行 JS）
+node tests/seo.cjs --base=https://kakshinji.github.io/mabu-toolbox --root=https://kakshinji.github.io/mabu-toolbox
+```
+
+检查内容：sitemap 每个 URL 是否 200、title/description 是否唯一、canonical 是否正确、
+H1 是否唯一、JSON-LD 是否可解析、正文是否在 HTML 里、robots 是否放行 AI 爬虫等。
+
+当前结果：**28 / 28 通过**。
+
+### 需要你手动做的一件事
+
+GitHub Pages **项目站**的 `robots.txt` 位于 `/mabu-toolbox/robots.txt`，而爬虫只读取域名根目录的
+`robots.txt`（`kakshinji.github.io/robots.txt`），这个文件你无法控制。影响是：
+
+- `robots.txt` 里的 AI 爬虫放行声明**不会生效**；
+- 但页面默认就是允许抓取的（`<meta name="robots" content="index,follow">`），所以**不影响收录**。
+
+要让 sitemap 和 AI 爬虫配置真正生效，建议任选其一：
+
+1. 绑定自定义域名（推荐，`robots.txt` 就能放在根目录）；
+2. 到 [Google Search Console](https://search.google.com/search-console) 和
+   [Bing Webmaster Tools](https://www.bing.com/webmasters) 手动提交
+   `https://kakshinji.github.io/mabu-toolbox/sitemap.xml`（不需要 robots.txt）。
+
 ## 测试
 
 需要本机安装 Chrome（脚本默认路径 `C:\Program Files\Google\Chrome\Application\chrome.exe`）。
@@ -139,19 +228,21 @@ npm run preview                      # 另开一个终端（默认 4173）
 node tests/e2e.cjs                   # 功能测试：41 个工具真实文件进出台
 node tests/edge.cjs                  # 边界测试：33 个异常/极端用例
 node tests/mobile.cjs                # 移动端：46 个页面/设备组合（触屏模拟）
-node tests/e2e.cjs --only=hash,ocr   # 只跑指定工具
+node tests/seo.cjs                   # SEO：52 个页面的可抓取性（28 项）
 node scripts/smoke.cjs               # 轻量：只检查所有页面是否报错
 ```
 
 - 功能测试拦截下载并把产物写到 `tests/output/`，用 `pdf-lib` 与文件头校验格式、页数、尺寸；
 - 边界测试额外要求「失败时有可读中文提示、不产出损坏文件、不卡死页面」；
-- 移动端测试使用 iPhone / Android 视口 + 触屏模拟，检查横向溢出、44px 触控目标、16px 输入字号。
+- 移动端测试使用 iPhone / Android 视口 + 触屏模拟，检查横向溢出、44px 触控目标、16px 输入字号；
+- SEO 测试直接抓静态 HTML（不跑 JS），验证爬虫视角的标题、描述、canonical、结构化数据与正文。
 
 当前结果：
 
 - 功能测试 **41 / 41 通过**
 - 边界测试 **33 / 33 通过**
 - 移动端测试 **46 / 46 通过**
+- SEO 检查 **28 / 28 通过**
 - 累计修复 11 个真实缺陷，详见 [`tests/测试报告.md`](tests/测试报告.md)
 
 ## 许可与致谢

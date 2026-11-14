@@ -61,8 +61,7 @@ const HOOK = `
 `;
 
 async function open(slug) {
-  await page.goto(`${BASE}/?load=${Date.now()}`, { waitUntil: 'domcontentloaded', timeout: 45000 });
-  await page.goto(`${BASE}/?load=${Date.now()}#/tools/${slug}`, { waitUntil: 'networkidle2', timeout: 45000 });
+  await page.goto(`${BASE}/tools/${slug}/`, { waitUntil: 'networkidle2', timeout: 45000 });
   await wait(800);
   const ok = await page.evaluate(() => Array.isArray(window.__objs));
   if (!ok) throw new Error('hook 未注入');

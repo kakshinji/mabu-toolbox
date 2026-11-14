@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 移动端触控测试
  * 在 iPhone 尺寸 + 触屏 + 移动 UA 下验证：
  *  1. 无横向溢出（scrollWidth <= clientWidth）
@@ -268,7 +268,7 @@ let current = '';
     const record = makeRecord(name);
     try {
       const target = name === 'home' ? '' : name === 'tools' ? '/tools' : '';
-      await page.goto(`${BASE}/?m=${Date.now()}#${target}`, { waitUntil: 'networkidle2', timeout: 45000 });
+      await page.goto(`${BASE}${target}`, { waitUntil: 'networkidle2', timeout: 45000 });
       await page.evaluate((d) => window.scrollTo(0, 0), device.height);
       await wait(800);
       await fn(record);
@@ -290,7 +290,7 @@ let current = '';
     current = slug;
     const record = makeRecord(slug);
     try {
-      await page.goto(`${BASE}/?m=${Date.now()}#/tools/${slug}`, { waitUntil: 'networkidle2', timeout: 45000 });
+      await page.goto(`${BASE}/tools/${slug}/`, { waitUntil: 'networkidle2', timeout: 45000 });
       await wait(700);
       await checks.toolPage(record, slug);
       if (['pdf-merge', 'json-format', 'qrcode', 'unit-convert'].includes(slug)) {
@@ -309,7 +309,7 @@ let current = '';
   console.log('\n== 多设备首页适配 ==');
   for (const d of DEVICES.slice(1)) {
     await page.setViewport({ width: d.width, height: d.height, deviceScaleFactor: d.dpr, isMobile: true, hasTouch: true });
-    await page.goto(`${BASE}/?d=${Date.now()}#`, { waitUntil: 'networkidle2' });
+    await page.goto(`${BASE}/`, { waitUntil: 'networkidle2' });
     await wait(600);
     const m = await measure();
     const record = makeRecord(`home-${d.name}`);

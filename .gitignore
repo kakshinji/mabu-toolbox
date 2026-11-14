@@ -32,3 +32,7 @@ Thumbs.db
 # 临时日志
 .joblog*
 *.jsonl
+
+# 临时调试脚本
+.*.cjs
+.*.mjs

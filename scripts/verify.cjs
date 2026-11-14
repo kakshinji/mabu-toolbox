@@ -35,7 +35,7 @@ const check = (name, ok, detail = '') => {
   const jpg = path.join(inputs, 'photo.jpg');
 
   async function go(slug) {
-    await page.goto(`${BASE}/#/tools/${slug}`, { waitUntil: 'networkidle2', timeout: 45000 });
+    await page.goto(`${BASE}/tools/${slug}`, { waitUntil: 'networkidle2', timeout: 45000 });
     await page.waitForSelector('input[type=file]', { timeout: 20000 });
     await wait(400);
   }

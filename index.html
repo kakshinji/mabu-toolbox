@@ -1,19 +1,38 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#2547e6" />
+    <meta name="theme-color" content="#141413" />
+    <meta name="color-scheme" content="light" />
+    <meta name="format-detection" content="telephone=no" />
+
     <title>抹布工具箱 · 免费在线小工具，全部在浏览器本地处理</title>
     <meta
       name="description"
       content="免费在线工具箱：PDF 合并拆分压缩、图片格式转换与压缩、OCR 文字识别、音视频转换、JSON 格式化、二维码、时间戳、单位换算等。所有文件仅在你的浏览器中处理，不上传服务器。"
     />
-    <meta name="keywords" content="在线工具箱,PDF合并,PDF压缩,图片压缩,图片格式转换,OCR,HEIC转JPG,JSON格式化,二维码生成,免费工具" />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%232547e6'/%3E%3Ctext x='50' y='70' font-size='58' text-anchor='middle' fill='white' font-family='sans-serif'%3E%E6%8A%B9%3C/text%3E%3C/svg%3E" />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- 预连接：OCR 与音视频工具会从 jsDelivr 下载引擎/模型 -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <div style="max-width: 720px; margin: 48px auto; padding: 0 24px; font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; line-height: 1.8; color: #292926">
+        <strong style="font-size: 18px">抹布工具箱 · 41 个免费在线小工具</strong>
+        <p>
+          这是一个纯浏览器端工具箱，需要启用 JavaScript 才能使用：PDF 合并拆分压缩、图片格式转换与压缩、OCR 文字识别、音视频转换、JSON 格式化、二维码生成等。
+          所有文件都在你的设备上处理，不会上传到服务器。
+        </p>
+        <p>启用 JavaScript 后刷新页面即可使用。</p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

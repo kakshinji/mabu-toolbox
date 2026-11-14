@@ -1,8 +1,12 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+// 部署子路径，例如 GitHub Pages 的 /mabu-toolbox/；
+// 本地开发/预览默认 '/'，CI 通过 SITE_BASE 环境变量覆盖。
+const base = process.env.SITE_BASE || '/';
+
 export default defineConfig({
-  base: './',
+  base,
   plugins: [react()],
   optimizeDeps: {
     exclude: ['pdfjs-dist'],

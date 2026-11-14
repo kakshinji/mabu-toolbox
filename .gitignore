@@ -1,4 +1,4 @@
-# dependencies
+﻿# dependencies
 node_modules/
 .pnpm-store/
 .npm-cache/
@@ -28,3 +28,7 @@ Thumbs.db
 # 编辑器
 .vscode/
 .idea/
+
+# 临时日志
+.joblog*
+*.jsonl

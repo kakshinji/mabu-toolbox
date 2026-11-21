@@ -325,6 +325,69 @@ const cases = {
     },
   },
 
+  'edge-image-compress-target-too-small': {
+    tool: 'image-compress',
+    run: async (record) => {
+      await pickFiles([path.join(FIX, 'big-photo.jpg')]);
+      await click('按目标体积');
+      // 目标 8KB：对 2400×1600 的照片几乎不可能，检查是否优雅处理
+      await page.evaluate(() => {
+        const el = document.querySelector('input[type=number]');
+        if (!el) throw new Error('找不到目标体积输入框');
+        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+        setter.call(el, '8');
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      await wait(300);
+      const clicked = await page.evaluate(() => {
+        const b = [...document.querySelectorAll('button')].find((x) => /^压到 /.test(x.textContent.trim()) && !x.disabled);
+        if (!b) return false;
+        b.click();
+        return true;
+      });
+      classify(record, 'x', '目标模式按钮可点击', clicked, String(clicked));
+      await settle(12000);
+      record.body = await bodyText();
+      assertAlive(record);
+      const blobs = await collectedBlobs();
+      const sawFeedback = /已达标|未达标|压不到/.test(record.body);
+      classify(record, 'x', '8KB 目标给出明确反馈', sawFeedback, '');
+      const ok = blobs.length === 0 || (blobs.length === 1 && blobs[0].size > 0);
+      classify(record, 'x', '不产出损坏文件', ok, `${blobs.length} 个，${blobs[0] ? blobs[0].size : 0} B`);
+      if (blobs.length === 1) {
+        classify(record, 'x', '产物不超过目标或明确告知未达标', blobs[0].size <= 8 * 1024 || /未达标|压不到/.test(record.body), `${blobs[0].size} B`);
+      }
+    },
+  },
+
+  'edge-image-compress-target-larger': {
+    tool: 'image-compress',
+    run: async (record) => {
+      const src = path.join(FIX, 'photo.jpg');
+      const originalSize = fs.statSync(src).size;
+      await pickFiles([src]);
+      await click('按目标体积');
+      await click('2 MB');
+      const clicked = await page.evaluate(() => {
+        const b = [...document.querySelectorAll('button')].find((x) => /^压到 /.test(x.textContent.trim()) && !x.disabled);
+        if (!b) return false;
+        b.click();
+        return true;
+      });
+      classify(record, 'x', '目标模式按钮可点击', clicked, String(clicked));
+      await settle(6000);
+      record.body = await bodyText();
+      assertAlive(record);
+      classify(record, 'x', '提示原图已达标', /原图已达标|原图已小于目标/.test(record.body), '');
+      const blobs = await collectedBlobs();
+      if (blobs.length) {
+        classify(record, 'x', '原图已小于目标时不做二次压缩', blobs[0].size === originalSize, `${blobs[0].size} B vs 原始 ${originalSize} B`);
+      } else {
+        classify(record, 'x', '产出结果', false, '没有产物');
+      }
+    },
+  },
   'edge-image-1px': {
     tool: 'image-convert',
     run: async (record) => {

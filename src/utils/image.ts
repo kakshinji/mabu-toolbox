@@ -190,6 +190,148 @@ export async function compressImage(
   return canvasToBlob(canvas, mime, opts.quality / 100);
 }
 
+/** 检测浏览器能否编码 WebP */
+let webpSupport: boolean | null = null;
+function canEncodeWebp(): boolean {
+  if (webpSupport !== null) return webpSupport;
+  try {
+    const c = document.createElement('canvas');
+    c.width = 1;
+    c.height = 1;
+    webpSupport = c.toDataURL('image/webp').startsWith('data:image/webp');
+  } catch {
+    webpSupport = false;
+  }
+  return webpSupport;
+}
+
+export interface TargetCompressResult {
+  blob: Blob;
+  /** 最终使用的质量（0–100），未重新编码时为 null */
+  quality: number | null;
+  width: number;
+  height: number;
+  format: 'jpeg' | 'webp' | 'original';
+  /** 是否压到了目标体积以内 */
+  achieved: boolean;
+  /** 是否为「原图已小于目标，未重新压缩」 */
+  keptOriginal: boolean;
+}
+
+/**
+ * 压到指定体积：在质量与尺寸两个维度上搜索，直到结果不超过 targetBytes。
+ *
+ * 策略：
+ *  1. 原图已小于目标 → 直接返回原图（避免二次压缩损失）
+ *  2. 当前尺寸下二分搜索质量，找「不超过目标的最大质量」
+ *  3. 最低质量仍超标 → 按 sqrt(目标/实际) 估算缩放比例，缩小尺寸后重试（最多 4 轮）
+ *  4. 缩到 64px 仍超标 → 返回最小结果，achieved=false，由 UI 提示
+ */
+export async function compressToTarget(
+  file: File,
+  opts: {
+    targetBytes: number;
+    /** auto：优先 WebP（体积更小），不支持时用 JPEG */
+    format?: 'jpeg' | 'webp' | 'auto';
+    /** 质量下限，默认 30，避免糊到不可用 */
+    minQuality?: number;
+    /** 尺寸下限，默认 64px */
+    minDimension?: number;
+  },
+): Promise<TargetCompressResult> {
+  const target = Math.max(1024, Math.round(opts.targetBytes));
+  const { bitmap, width, height } = await toBitmap(file);
+
+  // 原图已达标：不重新压缩
+  if (file.size <= target) {
+    if ('close' in bitmap) (bitmap as ImageBitmap).close();
+    return {
+      blob: file,
+      quality: null,
+      width,
+      height,
+      format: 'original',
+      achieved: true,
+      keptOriginal: true,
+    };
+  }
+
+  const requested = opts.format ?? 'auto';
+  const fmt: 'jpeg' | 'webp' = requested === 'auto' ? (canEncodeWebp() ? 'webp' : 'jpeg') : requested;
+  const mime = formatMime(fmt);
+  const minQuality = Math.min(60, Math.max(20, opts.minQuality ?? 30));
+  const minDim = Math.max(32, opts.minDimension ?? 64);
+
+  const encode = async (w: number, h: number, quality: number): Promise<Blob> => {
+    const canvas = drawToCanvas(bitmap, w, h, '#ffffff');
+    const blob = await canvasToBlob(canvas, mime, quality / 100);
+    canvas.width = 0;
+    canvas.height = 0;
+    return blob;
+  };
+
+  let scale = 1;
+  let best: { blob: Blob; quality: number; w: number; h: number } | null = null;
+  let rounds = 0;
+
+  for (let round = 0; round < 4; round += 1) {
+    rounds = round + 1;
+    const w = Math.max(minDim, Math.round(width * scale));
+    const h = Math.max(minDim, Math.round(height * scale));
+
+    // 先看最低质量能否达标
+    const floorBlob = await encode(w, h, minQuality);
+    if (!best || floorBlob.size < best.blob.size) {
+      best = { blob: floorBlob, quality: minQuality, w, h };
+    }
+    if (floorBlob.size > target) {
+      // 估算需要缩小多少面积：体积近似与像素数成正比
+      const factor = Math.sqrt(target / floorBlob.size);
+      const next = Math.max(0.25, Math.min(0.9, factor * 0.95));
+      scale *= next;
+      if (Math.max(width * scale, height * scale) < minDim) break;
+      continue;
+    }
+
+    // 在 [minQuality, 92] 之间二分，找不超过目标的最大质量
+    let lo = minQuality;
+    let hi = 92;
+    let chosen = { blob: floorBlob, quality: minQuality };
+    while (lo <= hi) {
+      const mid = Math.round((lo + hi) / 2);
+      const blob = await encode(w, h, mid);
+      if (blob.size <= target) {
+        chosen = { blob, quality: mid };
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    if ('close' in bitmap) (bitmap as ImageBitmap).close();
+    return {
+      blob: chosen.blob,
+      quality: chosen.quality,
+      width: w,
+      height: h,
+      format: fmt,
+      achieved: chosen.blob.size <= target,
+      keptOriginal: false,
+    };
+  }
+
+  if ('close' in bitmap) (bitmap as ImageBitmap).close();
+  const fallback = best as { blob: Blob; quality: number; w: number; h: number } | null;
+  return {
+    blob: fallback!.blob,
+    quality: fallback!.quality,
+    width: fallback!.w,
+    height: fallback!.h,
+    format: fmt,
+    achieved: fallback!.blob.size <= target,
+    keptOriginal: false,
+  };
+}
+
 /** 缩放 */
 export async function resizeImage(
   file: File,

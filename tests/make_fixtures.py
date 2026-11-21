@@ -117,6 +117,14 @@ def main():
     d.rectangle([110, 260, 290, 470], fill=(70, 110, 170))
     card.save(os.path.join(OUT, "id-photo.png"))
 
+    # 大图（约 2–4MB），用于「压到指定体积」测试：噪声让 JPEG 难以压缩
+    noise = Image.effect_noise((2400, 1600), 90).convert("RGB")
+    grad = Image.linear_gradient("L").resize((2400, 1600))
+    big = Image.merge("RGB", (noise.split()[0], grad, noise.split()[2]))
+    big_path = os.path.join(OUT, "big-photo.jpg")
+    big.save(big_path, "JPEG", quality=95)
+    made.append(big_path)
+
     made.append(build_docx(os.path.join(OUT, "report.docx")))
 
     made.append(

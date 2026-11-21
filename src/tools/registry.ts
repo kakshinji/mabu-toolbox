@@ -98,7 +98,7 @@ export const tools: ToolMeta[] = [
   {
     id: 'image-compress', slug: 'image-compress', icon: 'gauge', name: '图片压缩', category: 'image', hot: true, badge: '本地',
     desc: '按质量或目标体积压缩，批量处理，肉眼几乎看不出区别。',
-    keywords: ['图片压缩', '照片压缩', 'png压缩', 'compress image'],
+    keywords: ['图片压缩', '照片压缩', 'png压缩', '图片压缩到500kb', '压缩到指定大小', 'compress image'],
   },
   {
     id: 'image-resize', slug: 'image-resize', icon: 'crop', name: '图片批量缩放', category: 'image', hot: true, badge: '本地',

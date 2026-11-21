@@ -280,7 +280,9 @@ function imageInfo(file) {
 let slug = '';
 
 async function runTool(name, actions) {
-  slug = name;
+  // 用例可以声明 tool，用于同一个工具跑多个场景
+  const toolSlug = actions && actions.tool ? actions.tool : name;
+  slug = toolSlug;
   pageErrors = [];
   consoleErrors = [];
 
@@ -292,7 +294,7 @@ async function runTool(name, actions) {
 
   try {
     // 用 query 参数强制整页加载（hash 变更不会重新执行注入脚本）
-    await page.goto(`${BASE}/tools/${name}/`, { waitUntil: 'networkidle2', timeout: 45000 });
+    await page.goto(`${BASE}/tools/${toolSlug}/`, { waitUntil: 'networkidle2', timeout: 45000 });
     await wait(800);
     const hookOk = await page.evaluate(() => Array.isArray(window.__objs) && typeof window.__takeDownloads === 'function');
     if (!hookOk) throw new Error('Blob 采集 hook 未注入');
@@ -465,6 +467,71 @@ const cases = {
       },
     };
   },
+
+  // 同一工具的多场景：用例声明 tool，runner 会打开对应页面
+  'image-compress-target-500kb': Object.assign(
+    async () => {
+      await pickFiles([fx('big-photo.jpg')]);
+      await click('按目标体积');
+      await click('压到 500 KB 以内', { exact: false });
+      await waitText(/已达标|未达标/, 120000);
+      return {
+        expected: 1,
+        timeout: 180000,
+        verify: (files, c) => {
+          const size = files[0].size;
+          c('产物不超过 500KB', size <= 500 * 1024, (size / 1024).toFixed(1) + ' KB');
+          const info = imageInfo(files[0].path);
+          c('产物是可解码图片', !!info && info.format !== 'unknown', String(info && info.format));
+          c('比原图小', size < fs.statSync(fx('big-photo.jpg')).size, '');
+        },
+      };
+    },
+    { tool: 'image-compress' },
+  ),
+
+  'image-compress-target-2mb': Object.assign(
+    async () => {
+      await pickFiles([fx('big-photo.jpg')]);
+      await click('按目标体积');
+      await click('2 MB');
+      await click('压到 2 MB 以内', { exact: false });
+      await waitText(/已达标|未达标/, 120000);
+      return {
+        expected: 1,
+        timeout: 180000,
+        verify: (files, c) => {
+          const size = files[0].size;
+          c('产物不超过 2MB', size <= 2 * 1024 * 1024, (size / 1024 / 1024).toFixed(2) + ' MB');
+          const info = imageInfo(files[0].path);
+          c('产物是可解码图片', !!info && info.format !== 'unknown', String(info && info.format));
+        },
+      };
+    },
+    { tool: 'image-compress' },
+  ),
+
+  'image-compress-target-tiny': Object.assign(
+    async ({ check }) => {
+      await pickFiles([fx('big-photo.jpg')]);
+      await click('按目标体积');
+      await setValue('input[type=number]', '8');
+      await click('压到', { exact: false });
+      await waitText(/已达标|未达标|压不到/, 120000);
+      const text = await page.evaluate(() => document.body.innerText);
+      check('8KB 目标有明确结果反馈', /已达标|未达标|压不到/.test(text), '');
+      return {
+        expected: 1,
+        timeout: 180000,
+        verify: (files, c) => {
+          const info = imageInfo(files[0].path);
+          c('仍产出可解码图片（未崩溃）', !!info && info.format !== 'unknown', String(info && info.format));
+          c('不产出损坏文件', files[0].size > 0, files[0].size + ' B');
+        },
+      };
+    },
+    { tool: 'image-compress' },
+  ),
 
   'image-resize': async () => {
     await pickFiles([fx('photo.jpg')]);
@@ -781,7 +848,7 @@ const cases = {
 
   const failed = results.filter((r) => r.error || r.checks.some((c) => !c.ok));
   console.log('================ 汇总 ================');
-  console.log(`工具数: ${results.length}  通过: ${results.length - failed.length}  失败: ${failed.length}`);
+  console.log(`用例数: ${results.length}  通过: ${results.length - failed.length}  失败: ${failed.length}`);
   for (const f of failed) {
     console.log(`  ✗ ${f.tool}${f.error ? '（执行异常）' : ''}`);
     f.checks.filter((c) => !c.ok).forEach((c) => console.log(`      - ${c.label} ${c.detail}`));
